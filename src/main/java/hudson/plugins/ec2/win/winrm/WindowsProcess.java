@@ -119,19 +119,33 @@ public class WindowsProcess {
             @Override
             public void run() {
                 try {
+                    final int EXCEPTION_LIMIT = 60;
+                    final int ONE_SECOND = 1000;
+                    int io_exception_count = 0;
                     byte[] buf = new byte[INPUT_BUFFER];
                     for (;;) {
-                        int n = toCallersStdin.read(buf);
+                      int n = 0;
+                      try {
+                        n = toCallersStdin.read(buf);
+                        io_exception_count = 0;
+                      } catch (IOException ioe) {
+                          io_exception_count++;
+                        if (io_exception_count >= EXCEPTION_LIMIT) {
+                          throw ioe;
+                        }
+                        Thread.sleep(ONE_SECOND);
 
-                        if (n == -1)
-                            break;
-                        if (n == 0)
-                            continue;
+                      }
 
-                        byte[] bufToSend = new byte[n];
-                        System.arraycopy(buf, 0, bufToSend, 0, n);
-                        log.log(Level.FINE, "piping " + bufToSend.length + " to input of " + command);
-                        client.sendInput(bufToSend);
+                      if (n == -1)
+                          break;
+                      if (n == 0)
+                          continue;
+
+                      byte[] bufToSend = new byte[n];
+                      System.arraycopy(buf, 0, bufToSend, 0, n);
+                      log.log(Level.FINE, "piping " + bufToSend.length + " to input of " + command);
+                      client.sendInput(bufToSend);
                     }
                 } catch (Exception exc) {
                     log.log(Level.WARNING, "ouch, STDIN exception for " + command, exc);
