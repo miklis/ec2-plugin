@@ -438,9 +438,12 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                     logProvision(logger, " false - Node is not partially idle");
                     return false;
                 }
-                // REMOVEME - this was added to force provision to work, but might not allow
-                // stopped instances to be found - need to investigate further
-                else if (false && node.toComputer().isOffline()) {
+                else if(!node.toComputer().isAcceptingTasks()) {
+                    logProvision(logger, " false - Node is not accepting tasks");
+                    return false;
+                }
+                // Fork: miklis: Allow provisioning new agents while and offline agent is still executing previous tasks.
+                else if (node.toComputer().isOffline()) {
                     logProvision(logger, " false - Node is offline");
                     return false;
                 } else if (requiredLabel != null && !requiredLabel.matches(node.getAssignedLabels())) {
